@@ -5,12 +5,13 @@ import org.apache.log4j.Logger;
 import bb.aoc2021.InputHandler;
 
 
-public class Day2 implements InputHandler {
+public class Day2b implements InputHandler {
 	
-	static private Logger logger = Logger.getLogger(Day2.class.getName());
+	static private Logger logger = Logger.getLogger(Day2b.class.getName());
 	
 	int hPos = 0;
 	int depth = 0;
+	int aim = 0;
 	
 	@Override
 	public void handleInput(String line) {
@@ -30,11 +31,13 @@ public class Day2 implements InputHandler {
 		
 		switch(direction) {
 		case "forward":
-			hPos += distance; break;
+			hPos += distance; 
+			depth += (aim * distance);
+			break;
 		case "down":
-			depth += distance; break;
+			aim += distance; break;
 		case "up":
-			depth -= distance; break;
+			aim -= distance; break;
 		default:
 			logger.error("Unknown command: "+direction);
 		}

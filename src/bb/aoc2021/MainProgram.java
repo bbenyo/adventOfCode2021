@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import bb.aoc2021.handler.Day1;
 import bb.aoc2021.handler.Day1b;
 import bb.aoc2021.handler.Day2;
+import bb.aoc2021.handler.Day2b;
 
 public class MainProgram {
 
@@ -60,6 +61,8 @@ public class MainProgram {
 			return new Day1b();
 		case "Day2" :
 			return new Day2();
+		case "Day2b" :
+			return new Day2b();
 		default :
 			logger.error("Unknown input handler: "+handlerName);
 			return null;
