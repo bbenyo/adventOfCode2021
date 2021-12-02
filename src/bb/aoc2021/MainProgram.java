@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import bb.aoc2021.handler.Day1;
 import bb.aoc2021.handler.Day1b;
+import bb.aoc2021.handler.Day2;
 
 public class MainProgram {
 
@@ -51,11 +52,14 @@ public class MainProgram {
 	}
 	
 	static public InputHandler createInputHandler(String handlerName) {
+		// TODO: Flip to reflection here
 		switch (handlerName) {
 		case "Day1" : 
 			return new Day1();
 		case "Day1b" : 
 			return new Day1b();
+		case "Day2" :
+			return new Day2();
 		default :
 			logger.error("Unknown input handler: "+handlerName);
 			return null;
