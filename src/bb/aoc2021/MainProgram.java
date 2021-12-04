@@ -10,6 +10,8 @@ import bb.aoc2021.handler.Day1;
 import bb.aoc2021.handler.Day1b;
 import bb.aoc2021.handler.Day2;
 import bb.aoc2021.handler.Day2b;
+import bb.aoc2021.handler.Day3;
+import bb.aoc2021.handler.Day3b;
 
 public class MainProgram {
 
@@ -20,6 +22,7 @@ public class MainProgram {
 	 * @param args
 	 */
 	static public void main(String[] args) {
+		// TODO: Compute input file name with a pattern (testX, inputX), and use a flag -t for test vs input
 		if (args.length != 2) {
 			logger.error("Usage: MainProgram [inputFileName] [handler]");
 			System.exit(-1);
@@ -43,7 +46,7 @@ public class MainProgram {
 		try (BufferedReader bread = new BufferedReader(new FileReader(filename))) {
 			String line = bread.readLine();
 			while (line != null) {
-				handler.handleInput(line);
+				handler.handleInput(line.trim());
 				line = bread.readLine();
 			}
 			handler.output();
@@ -63,6 +66,10 @@ public class MainProgram {
 			return new Day2();
 		case "Day2b" :
 			return new Day2b();
+		case "Day3" :
+			return new Day3();
+		case "Day3b" :
+			return new Day3b();
 		default :
 			logger.error("Unknown input handler: "+handlerName);
 			return null;
