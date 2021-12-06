@@ -12,28 +12,46 @@ import bb.aoc2021.handler.Day2;
 import bb.aoc2021.handler.Day2b;
 import bb.aoc2021.handler.Day3;
 import bb.aoc2021.handler.Day3b;
+import bb.aoc2021.handler.Day4;
+import bb.aoc2021.handler.Day4b;
 
 public class MainProgram {
 
 	static private Logger logger = Logger.getLogger(MainProgram.class.getName());
 
 	/**
-	 * argument 1: Input file name
+	 * argument 1: test | input to use testX or inputX as the input
+	 * argument 2: problem number: 1, 1b, 2, 2b, 3, 3b, etc
 	 * @param args
 	 */
 	static public void main(String[] args) {
-		// TODO: Compute input file name with a pattern (testX, inputX), and use a flag -t for test vs input
 		if (args.length != 2) {
-			logger.error("Usage: MainProgram [inputFileName] [handler]");
+			logger.error("Usage: MainProgram [test|input] [Problem number]");
 			System.exit(-1);
 		}
 		
-		String input = args[0];
-		String handlerName = args[1];
+		String testOrInput = args[0];
+		String dayNumber = args[1];
+		boolean bVersion = false;
+		if (dayNumber.endsWith("b")) {
+			bVersion = true;
+			dayNumber = dayNumber.substring(0, dayNumber.length() - 1);
+		}
 		
-		InputHandler handler = createInputHandler(handlerName);
+		logger.info("AOC 2021 MainProgram: "+dayNumber+" bVersion: "+bVersion+" Input type: "+testOrInput);
+		
+		InputHandler handler = createInputHandler(dayNumber, bVersion);
 		if (handler != null) {
 			try {
+				String input = null;
+				if (testOrInput.equalsIgnoreCase("test")) {
+					input = "data/test/test" + dayNumber + ".txt";
+				} else if (testOrInput.equalsIgnoreCase("input")) {
+					input = "data/input/input" + dayNumber + ".txt";
+				} else {
+					logger.error("Unknown input type: "+testOrInput+", expecting test|input");
+					System.exit(-1);
+				}
 				handleInputFile(input, handler);
 			} catch (IOException ex) {
 				logger.error(ex.toString(), ex);
@@ -55,8 +73,12 @@ public class MainProgram {
 		} 
 	}
 	
-	static public InputHandler createInputHandler(String handlerName) {
-		// TODO: Flip to reflection here
+	static public InputHandler createInputHandler(String dayNumber, boolean bVersion) {
+		// TODO: Reflection here
+		String handlerName = "Day"+dayNumber;
+		if (bVersion) {
+			handlerName = handlerName + "b";
+		}
 		switch (handlerName) {
 		case "Day1" : 
 			return new Day1();
@@ -70,6 +92,10 @@ public class MainProgram {
 			return new Day3();
 		case "Day3b" :
 			return new Day3b();
+		case "Day4" :
+			return new Day4();
+		case "Day4b" :
+			return new Day4b();
 		default :
 			logger.error("Unknown input handler: "+handlerName);
 			return null;

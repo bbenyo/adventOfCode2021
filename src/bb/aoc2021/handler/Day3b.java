@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import bb.aoc2021.InputHandler;
+import bb.aoc2021.Utilities;
 
 public class Day3b extends Day3 implements InputHandler {
 	
@@ -78,22 +79,6 @@ public class Day3b extends Day3 implements InputHandler {
 		rValues.removeAll(remove);
 	}
 	
-	/** 
-	 * String representing a bit value (e.g. 01101) to the long it represents
-	 * @param s
-	 * @return
-	 */
-	protected long bitStringToLong(String s) {
-		long val = 0;
-		for (int i=0; i<s.length(); ++i) {
-			int valPos = s.length() - i - 1;
-			if (s.charAt(i) == '1') {
-				val += Math.pow(2, valPos);
-			}
-		}
-		return val;
-	}
-	
 	/**
 	 * Iterate through the strings index by index, removing all entries with the most (or least) common value
 	 * @param wantMostCommon
@@ -109,11 +94,11 @@ public class Day3b extends Day3 implements InputHandler {
 			logger.info("Most common "+i+" was "+targetValue);
 			removeAllWith(i, targetValue, rValues);
 			if (rValues.size() == 1) {
-				return bitStringToLong(rValues.get(0));
+				return Utilities.bitStringToLong(rValues.get(0));
 			}
 		}
 		if (rValues.size() == 1) {
-			return bitStringToLong(rValues.get(0));
+			return Utilities.bitStringToLong(rValues.get(0));
 		} else {
 			logger.error("More than 1 option left: "+rValues.size());
 			return -1;
