@@ -14,6 +14,8 @@ import bb.aoc2021.handler.Day3;
 import bb.aoc2021.handler.Day3b;
 import bb.aoc2021.handler.Day4;
 import bb.aoc2021.handler.Day4b;
+import bb.aoc2021.handler.Day5;
+import bb.aoc2021.handler.Day5b;
 
 public class MainProgram {
 
@@ -96,6 +98,10 @@ public class MainProgram {
 			return new Day4();
 		case "Day4b" :
 			return new Day4b();
+		case "Day5" :
+			return new Day5();
+		case "Day5b" :
+			return new Day5b();
 		default :
 			logger.error("Unknown input handler: "+handlerName);
 			return null;
