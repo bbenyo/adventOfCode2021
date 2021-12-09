@@ -81,30 +81,15 @@ public class MainProgram {
 		if (bVersion) {
 			handlerName = handlerName + "b";
 		}
-		switch (handlerName) {
-		case "Day1" : 
-			return new Day1();
-		case "Day1b" : 
-			return new Day1b();
-		case "Day2" :
-			return new Day2();
-		case "Day2b" :
-			return new Day2b();
-		case "Day3" :
-			return new Day3();
-		case "Day3b" :
-			return new Day3b();
-		case "Day4" :
-			return new Day4();
-		case "Day4b" :
-			return new Day4b();
-		case "Day5" :
-			return new Day5();
-		case "Day5b" :
-			return new Day5b();
-		default :
-			logger.error("Unknown input handler: "+handlerName);
-			return null;
+		String pkg = "bb.aoc2021.handler";
+		try {
+			String className = pkg + "." + handlerName;
+			Class<?> hClass = Class.forName(className);
+			InputHandler handler = (InputHandler)hClass.getConstructor().newInstance();
+			return handler;
+		} catch (Exception ex) {
+			logger.error(ex.toString(), ex);
 		}
+		return null;
 	}
 }
