@@ -1,6 +1,7 @@
 package bb.aoc2021;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -8,6 +9,9 @@ import org.apache.log4j.Logger;
 public class Utilities {
 
 	static private Logger logger = Logger.getLogger(Utilities.class.getName());
+
+	private Utilities() {}
+	
 	/** 
 	 * String representing a bit value (e.g. 01101) to the long it represents
 	 * @param s
@@ -40,5 +44,19 @@ public class Utilities {
 		}
 		int[] iArray = ints.stream().mapToInt(i -> i).toArray();
 		return iArray;
+	}
+	
+	public static int median(int[] list) {
+		Arrays.sort(list);
+		if (list.length % 2 == 1) {
+			int medIndex = (int)Math.floor(list.length / 2);
+			return list[medIndex];
+		} else {
+			int m1 = list.length / 2;
+			int m2 = m1 - 1;
+			int v1 = list[m1];
+			int v2 = list[m2];
+			return (int)Math.floor((v1 + v2)/2);
+		}
 	}
 }
