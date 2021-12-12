@@ -12,21 +12,6 @@ import bb.aoc2021.InputHandler;
 public class Day8 implements InputHandler {
 	static private Logger logger = Logger.getLogger(Day8.class.getName());
 	
-	protected class Digits {
-		// Wire a -> could be (a,b,c,d), etc
-		Map<Character, List<Character>> wirePotentials = new HashMap<Character, List<Character>>();
-		
-		public Digits() {
-			for (char c = 'a'; c <= 'g'; ++c) {
-				List<Character> pots = new ArrayList<Character>();
-				wirePotentials.put(c, pots);
-				for (char p = 'a'; p <= 'g'; ++p) {
-					pots.add(p);
-				}
-			}
-		}
-	}
-	
 	protected List<Integer> mapOutput(String wiresOn) {
 		int len = wiresOn.length();
 		List<Integer> mapping = new ArrayList<Integer>();

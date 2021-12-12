@@ -2,7 +2,11 @@ package bb.aoc2021;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -59,4 +63,44 @@ public class Utilities {
 			return (int)Math.floor((v1 + v2)/2);
 		}
 	}
+
+	/**
+	 * True if all characters in the set are present in the string
+	 * @param input
+	 * @param chars
+	 * @return
+	 */
+	static public boolean matchesRight(String input, Set<Character> chars) {
+		for (Character c : chars) {
+			if (input.indexOf(c) == -1) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * True if all characters in the string are present in the set
+	 * @param input
+	 * @param chars
+	 * @return
+	 */
+	static public boolean matchesLeft(String input, Set<Character> chars) {
+		for (int i=0; i<input.length(); ++i) {
+			char c = input.charAt(i);
+			if (!chars.contains(c)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	static public Set<Character> stringToCharList(String s) {
+		Set<Character> chars = new HashSet<Character>();
+		for (int i=0; i<s.length(); ++i) {
+			chars.add(s.charAt(i));
+		}
+		return chars;
+	}
+	
 }
