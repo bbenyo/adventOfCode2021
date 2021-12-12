@@ -2,7 +2,6 @@ package bb.aoc2021.handler;
 
 import org.apache.log4j.Logger;
 
-import bb.aoc2021.InputHandler;
 import bb.aoc2021.Utilities;
 
 public class Day7b extends Day7 {

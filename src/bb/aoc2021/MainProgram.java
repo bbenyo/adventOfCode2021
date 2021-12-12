@@ -6,17 +6,6 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
-import bb.aoc2021.handler.Day1;
-import bb.aoc2021.handler.Day1b;
-import bb.aoc2021.handler.Day2;
-import bb.aoc2021.handler.Day2b;
-import bb.aoc2021.handler.Day3;
-import bb.aoc2021.handler.Day3b;
-import bb.aoc2021.handler.Day4;
-import bb.aoc2021.handler.Day4b;
-import bb.aoc2021.handler.Day5;
-import bb.aoc2021.handler.Day5b;
-
 public class MainProgram {
 
 	static private Logger logger = Logger.getLogger(MainProgram.class.getName());
