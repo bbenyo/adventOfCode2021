@@ -15,7 +15,7 @@ import bb.aoc2021.InputHandler;
 
 public class Day12 implements InputHandler {
 	static private Logger logger = Logger.getLogger(Day12.class.getName());
-	
+		
 	public class Cave {
 		String name;
 		boolean small;
@@ -43,10 +43,12 @@ public class Day12 implements InputHandler {
 	
 	public class Path {
 		List<Cave> path;
+		Cave smallTwice; // Single small cave that we can visit twice on this path
 		
 		public Path(Cave start) {
 			path = new ArrayList<Cave>();
 			path.add(start);
+			smallTwice = null;
 		}
 		
 		public Path(Path p1) {
@@ -54,6 +56,7 @@ public class Day12 implements InputHandler {
 			for (Cave p : p1.path) {
 				path.add(p);
 			}
+			smallTwice = p1.smallTwice;
 		}
 		
 		public boolean isEnd() {
@@ -62,9 +65,22 @@ public class Day12 implements InputHandler {
 		
 		public boolean visitedSmallTwice() {
 			Set<String> visited = new HashSet<String>();
+			boolean visitedSmallTwice = false;
 			for (Cave c : path) {
 				if (c.small && visited.contains(c.name)) {
-					return true;
+					if (allowSmallTwice() && !c.isEnd() && !c.isStart()) {
+						if (smallTwice == null) {
+							// We haven't visited any small twice yet
+							smallTwice = c;
+						} else if (smallTwice.name.equals(c.name) && !visitedSmallTwice) {
+							// This is the second time we visited this one, still good
+							visitedSmallTwice = true;
+						} else {
+							return true;
+						}
+					} else {
+						return true;
+					}
 				} else if (c.small) {
 					visited.add(c.name);
 				}
@@ -100,6 +116,10 @@ public class Day12 implements InputHandler {
 		}
 	}
 		
+	protected boolean allowSmallTwice() {
+		return false;
+	}
+	
 	Map<String, Cave> caves = new HashMap<String, Cave>();
 
 	@Override
