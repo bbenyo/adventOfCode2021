@@ -51,7 +51,7 @@ public class Utilities {
 	public static int median(int[] list) {
 		Arrays.sort(list);
 		if (list.length % 2 == 1) {
-			int medIndex = (int)Math.floor(list.length / 2);
+			int medIndex = (int)Math.floor(list.length / 2.0);
 			return list[medIndex];
 		} else {
 			int m1 = list.length / 2;
