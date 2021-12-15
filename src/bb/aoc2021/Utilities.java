@@ -2,8 +2,10 @@ package bb.aoc2021;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -99,6 +101,19 @@ public class Utilities {
 			chars.add(s.charAt(i));
 		}
 		return chars;
+	}
+	
+	static public Map<Character, Long> characterCounts(String s) {
+		Map<Character, Long> counts = new HashMap<>();
+		for (int i=0; i<s.length(); ++i) {
+			char c1 = s.charAt(i);
+			Long c = counts.get(c1);
+			if (c == null) {
+				c = 0l;
+			} 
+			counts.put(c1, c+1);
+		}
+		return counts;
 	}
 	
 }
