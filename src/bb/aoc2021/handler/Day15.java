@@ -26,9 +26,29 @@ public class Day15 implements InputHandler {
 	// Don't know how big the grid will be
 	List<int[]> grid = new ArrayList<>();
 	
+	// Assume a even grid where each row is the same size
+	protected int getGridSizeX() {
+		if (grid.size() > 0) {
+			return grid.get(0).length;
+		}
+		return 0;
+	}
+	
+	protected int getGridSizeY() {
+		return grid.size();
+	}
+	
+	protected int getRightDownDistanceToEnd(int x, int y) {
+		int right = getGridSizeX() - x;
+		int down = getGridSizeY() - y;
+		return right + down;
+	}
+	
 	public class Node extends Location {
 		String label;
-		int gScore = 10 * (grid.size() * 2);
+		int gScore = 10 * (getGridSizeY() * 2);  // Worst possible value for risk
+		// If we went from top left to bottom right at 10 risk per step, can't be worse than this
+		
 		int hScore = 0;
 		
 		Set<Node> neighbors;
@@ -48,25 +68,13 @@ public class Day15 implements InputHandler {
 			this.neighbors.add(neighbor);
 		}
 		
-		// Bottom right
-		public boolean isEnd() {
-			if ((getY() == grid.size() - 1) &&
-				(getX() == (grid.get(grid.size() - 1).length - 1))) {
-				return true;
-			}
-			return false;
-		}
-		
 		// Heuristic, guess on the risk score for the path to the end
 		//   We'll just do a right/down distance, and assume average risk of 5
 		protected void computeHScore() {
-			int[] row = grid.get(getY());
-			int right = row.length - getX();
-			int down = grid.size() - getY();
-			
+			int dist = getRightDownDistanceToEnd(getX(), getY());
 			// Could calculate the actual risk for going this way, but this is fine, it's just a heuristic
 			//   and we don't care about optimizing this search for speed today
-			int h = (right * 5) + (down * 5);
+			int h = (dist * 5);
 			hScore = h;
 		}
 		
@@ -91,14 +99,14 @@ public class Day15 implements InputHandler {
 			
 			x = getX() + 1;
 			y = getY(); // right
-			if (x < grid.get(y).length) {
+			if (x < getGridSizeX()) {
 				Location lup = new Location(x, y);
 				addNeighbor(lup);
 			}
 			
 			x = getX();
 			y = getY() + 1; // down
-			if (y < grid.size()) {
+			if (y < getGridSizeY()) {
 				Location lup = new Location(x, y);
 				addNeighbor(lup);
 			}			
@@ -114,6 +122,19 @@ public class Day15 implements InputHandler {
 				nodes.put(lup.toString(), uNode);				
 			}
 		}
+	}
+	
+	protected int getRisk(Location cur) {
+		return grid.get(cur.getY())[cur.getX()];
+	}
+	
+	// Bottom right
+	public boolean isEnd(Location loc) {
+		if ((loc.getY() == getGridSizeY() - 1) &&
+			(loc.getX() == getGridSizeX() - 1)) {
+			return true;
+		}
+		return false;
 	}
 	
 	Map<String, Node> nodes = new HashMap<String, Node>();
@@ -150,11 +171,11 @@ public class Day15 implements InputHandler {
 			next.computeHScore();
 			
 			logger.info("Searching: "+next);
-			if (next.isEnd()) {
+			if (isEnd(next)) {
 				return next;
 			}
 			for (Node n1 : next.neighbors) {
-				int g = next.gScore + grid.get(n1.getY())[n1.getX()];
+				int g = next.gScore + getRisk(n1);
 				// If the path from next to n1 is better than any other path we've found to n1:
 				if (g < n1.gScore) {
 					n1.backPath = next;
@@ -182,8 +203,8 @@ public class Day15 implements InputHandler {
 		int risk = 0;
 		while (cur.backPath != null) {
 			sb.append(System.lineSeparator());
-			sb.append(cur.toString());
-			risk += grid.get(cur.getY())[cur.getX()];
+			sb.append(cur.toString()+": "+getRisk(cur));
+			risk += getRisk(cur);
 			cur = cur.backPath;
 		}
 		logger.info("Path: "+sb.toString());
@@ -192,6 +213,11 @@ public class Day15 implements InputHandler {
 
 	@Override
 	public void output() {
+		for (int i=0; i<10; ++i) {
+			Location l1 = new Location(0,i);
+			logger.info("Risk for "+l1+": "+getRisk(l1));
+		}
+		
 		Node end = search();
 		int risk = 0;
 		if (end != null) {
