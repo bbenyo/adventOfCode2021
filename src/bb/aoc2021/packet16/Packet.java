@@ -10,11 +10,14 @@ public abstract class Packet {
 	protected short typeId;
 	
 	protected int length = 0;
-	
+
+	long value;
+
 	public Packet(short v, short t) {
 		this.version = v;
 		this.typeId = t;
 		length = 6;
+		value = -1;
 	}
 	
 	public int getLength() {
@@ -23,6 +26,14 @@ public abstract class Packet {
 	
 	public void setLength(int length) {
 		this.length = length;
+	}
+
+	public long getValue() {
+		return value;
+	}
+
+	public void setValue(long value) {
+		this.value = value;
 	}
 	
 	/*

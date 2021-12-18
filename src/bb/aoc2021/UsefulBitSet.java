@@ -107,7 +107,7 @@ public class UsefulBitSet extends BitSet {
 		}
 		for (int i = 0; i<=sz; ++i) {
 			if (get(start+(sz-i))) {
-				value += (1 << i);
+				value += (1L << i);
 			}
 		}
 		return value;
