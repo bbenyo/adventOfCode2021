@@ -118,4 +118,43 @@ public class Utilities {
 		return counts;
 	}
 	
+	/**
+	 * Get the substring of str that starts after the 'before' substring, and ends just before the 'after' substring
+	 *    Starting a startPos
+	 *    
+	 * So if the line was 'foo=bar..grumpy=cat',
+	 *   getStringBetween(line, "foo", "bar", 0) = '='   (start after foo, ends before bar)
+	 *   getStringBetween(line, "=", "..", 0) = 'bar'
+	 *   
+	 * Returns null if before doesn't exist, or there's no after after before
+	 * @param line
+	 * @param before
+	 * @param after
+	 * @param startPos
+	 * @return
+	 */
+	static public String getStringBetween(String line, String before, String after, int startPos) {
+		int sPos = line.indexOf(before, startPos);
+		if (sPos == -1) {
+			return null;
+		}
+		int ePos = line.indexOf(after, sPos + before.length());
+		if (ePos == -1) {
+			return null;
+		}
+		return line.substring(sPos + before.length(), ePos);
+	}
+	
+	static public Integer parseIntOrNull(String val) {
+		try {
+			return Integer.parseInt(val);
+		} catch (NumberFormatException ex) {
+			return null;
+		}
+	}
+	
+	static public int sumIntsBetween(int start, int end) {
+		return (start + end) * (end - start + 1) / 2;
+	}
+	
 }
