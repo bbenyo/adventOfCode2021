@@ -59,6 +59,15 @@ public class Location3D extends Location {
 	public Location3D trueLoc(Location3D sensorLoc) {
 		return new Location3D(x + sensorLoc.x, y + sensorLoc.y, z + sensorLoc.z);		
 	}
+	
+	/**
+	 * Manhattan distance
+	 * @param otherLoc
+	 * @return
+	 */
+	public int distanceTo(Location3D otherLoc) {
+		return Math.abs(x - otherLoc.x) + Math.abs(y - otherLoc.y) + Math.abs(z - otherLoc.z); 
+	}
 
 	@Override
 	public int hashCode() {
