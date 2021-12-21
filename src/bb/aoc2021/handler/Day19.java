@@ -15,6 +15,41 @@ public class Day19 implements InputHandler {
 	static private Logger logger = Logger.getLogger(Day19.class.getName());
 	
 	int neededToAlign = 12;
+	
+	/**
+	 * Rotations
+	 * 
+	 * x, y, z
+	 * x, y, -z
+	 * x, -y, z
+	 * x, -y, -z
+	 * -x, y, z
+	 * -x, y, -z
+	 * -x, -y, z
+	 * -x, -y, -z
+	 * 
+	 * Swap x,y
+	 * y, x, z
+	 * y, x, -z
+	 * y, -x, z
+	 * y, -x, -x
+	 * -y, x, z
+	 * -y, x, -z
+	 * -y, -x, z
+	 * -y, -x, -z
+	 * 
+	 * Swap x,z
+	 * z, y, x
+	 * 
+	 * Swap y,z
+	 * x, z, y
+	 * 
+	 * Swap x,y, swap y,z
+	 * y, z, x
+	 * 
+	 * z, x, y
+	 * Some of these may end up being the same, but we'll just power through =)
+	 */
 
 	public class Scanner {
 		Location3D loc;
@@ -40,12 +75,72 @@ public class Day19 implements InputHandler {
 		
 		public void align() {
 			beaconsTrue.clear();
-			for (Location3D b : beacons) {
+			for (Location3D b : rotated) {
 				beaconsTrue.add(b.trueLoc(loc));
 			}
+			
+			beacons.clear();
+			beacons.addAll(rotated);
 		}
 		
-		public void rotate() {
+		// Could be a lot more cleaner here, but c'est la vie
+		public void rotate(boolean xPos, boolean yPos, boolean zPos, int swapIdx) {
+			rotated.clear();
+			for (Location3D b: beacons) {
+				int bx = b.getX();
+				if (!xPos) {
+					bx = -bx;
+				}
+				
+				int by = b.getY();
+				if (!yPos) {
+					by = -by;
+				}
+				
+				int bz = b.getZ();
+				if (!zPos) {
+					bz = -bz;
+				}
+				
+				// X,Z,Y swap
+				int tmpx, tmpy;
+				switch (swapIdx) {
+				case 0 :
+					break;
+				case 1: // xzy
+					tmpy = by;
+					by = bz;
+					bz = tmpy;
+					break;
+				case 2 : // yxz Swap
+					tmpx = bx;
+					bx = by;
+					by = tmpx;
+					break;
+				case 3 : // yzxSwap
+					tmpx = bx;
+					bx = by;
+					by = bz;
+					bz = tmpx;
+					break;
+				case 4 : // zxySwap
+				    tmpx = bx;
+					bx = bz;
+					bz = by;
+					by = tmpx;
+					break;
+				case 5 : // zyxSwap
+					tmpx = bx;
+					bx = bz;
+					bz = tmpx;
+					break;
+				default :
+					break;
+				}
+				
+				Location3D br = new Location3D(bx, by, bz);
+				rotated.add(br);
+			}
 			
 		}
 		
@@ -101,13 +196,16 @@ public class Day19 implements InputHandler {
 			Scanner s1 = new Scanner(scannerName);
 			if (scannerName.equals("0")) {
 				// We know where scanner 0 is
-				s1.loc = new Location3D(0,0,0);
+				s1.loc = new Location3D(0,0,0);				
 			}
 			curScanner = s1;
 			scanners.add(s1);			
 		} else if (curScanner != null) {
 			Location3D beacon = new Location3D(line);
 			curScanner.addBeacon(beacon);
+			if (curScanner.name.equals("0")) {
+				curScanner.beaconsTrue.add(beacon);
+			}
 		} else {
 			logger.error("Logic error in parsing input: "+line);
 		}
@@ -134,22 +232,47 @@ public class Day19 implements InputHandler {
 		// Try to align s2 with s1.
 		// For every beacon in s1, try to align s2 to that beacon
 		//   See if there are at least 11 other beacons that line up with the proposed loc for s2
-		//  Ignores orientation for now
-		for (Location3D b1 : s1.beacons) {
-			for (Location3D b2 : s2.beacons) {
+	
+		// Try all 48 rotations, could be smart and skip half of them, but that's only a factor of 2 reduction in time	
+		for (int swaps = 0; swaps < 6; ++swaps) {
+			for (int rots = 0; rots < 8; ++rots) {
+				
+				// Rotate S2
+				rotation(s2, rots, swaps);
+				
 				// Let's try b2 = b1
 				//  If this is right, then we can get the location of s2, and check to see if there are 11 other aligned beacons
-				Location3D s2True = b1.relativeTo(b2);
-				if (align(s1, s2, s2True)) {
-					s2.loc = s2True;
-					logger.info("Setting scanner "+s2.name+" location to "+s2.loc);
-					s2.align();
-					return true;
+				
+				for (Location3D b1 : s1.beacons) {
+					for (Location3D b2 : s2.rotated) {
+						Location3D s2True = b1.relativeTo(b2);
+						if (align(s1, s2, s2True)) {
+							Location3D s2Loc = s2True.trueLoc(s1.loc);
+							s2.loc = s2Loc;
+							logger.info("Setting scanner "+s2.name+" location to "+s2.loc);
+							s2.align();
+							return true;
+						}
+					}
 				}
 			}
 		}
 		logger.info(s1.name+" and "+s2.name+" don't align");
 		return false;
+	}
+	
+	protected void rotation(Scanner s, int signs, int swaps) {
+		switch (signs) {
+		case 0 : s.rotate(true, true, true, swaps); break;
+		case 1 : s.rotate(true, true, false, swaps); break;
+		case 2 : s.rotate(true, false, true, swaps); break;
+		case 3 : s.rotate(true, false, false, swaps); break;
+		case 4 : s.rotate(false, true, true, swaps); break;
+		case 5 : s.rotate(false, true, false, swaps); break;
+		case 6 : s.rotate(false, false, true, swaps); break;
+		case 7 : s.rotate(false, false, false, swaps); break;
+		default: logger.error("Unknown rotation: "+signs+" swap: "+swaps);
+		}
 	}
 	
 	/**
@@ -161,7 +284,7 @@ public class Day19 implements InputHandler {
 	 */
 	protected boolean align(Scanner s1, Scanner s2, Location3D s2True) {
 		Set<Location3D> b2TrueLocs = new HashSet<Location3D>();
-		for (Location3D b2 : s2.beacons) {
+		for (Location3D b2 : s2.rotated) {
 			Location3D b2True = b2.trueLoc(s2True);
 			b2TrueLocs.add(b2True);
 		}
