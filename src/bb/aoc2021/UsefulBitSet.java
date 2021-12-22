@@ -28,6 +28,16 @@ public class UsefulBitSet extends BitSet {
 	
 	public UsefulBitSet(int len) {
 		super(len);
+		this.realLength = len;
+	}
+	
+	public UsefulBitSet(UsefulBitSet clone) {
+		this.realLength = clone.realLength;
+		for (int i=0; i<realLength; ++i) {
+			if (clone.get(i)) {
+				set(i);
+			}
+		}
 	}
 	
 	public int getPos() {
@@ -36,6 +46,12 @@ public class UsefulBitSet extends BitSet {
 
 	public void setPos(int pos) {
 		this.pos = pos;
+	}
+	
+	public void setAllOn() {
+		for (int i=0; i<length(); ++i) {
+			set(i);
+		}
 	}
 
 	/**
@@ -117,6 +133,7 @@ public class UsefulBitSet extends BitSet {
 		return toLongRange(0, length()-1);
 	}
 		
+	@Override
 	public int length() {
 		if (realLength == -1) {
 			return super.length();
@@ -127,5 +144,18 @@ public class UsefulBitSet extends BitSet {
 	
 	public void setRealLength(int len) {
 		this.realLength = len;
+	}
+	
+	// Shift the on bits right by 1,
+	// 001010 -> 0001010
+	public void shift1() {
+		UsefulBitSet save = new UsefulBitSet(this);
+		clear();
+		this.realLength ++;
+		for (int i=0; i < realLength; ++i) {
+			if (save.get(i)) {
+				this.set(i+1);
+			}
+		}
 	}
 }
