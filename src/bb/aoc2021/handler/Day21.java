@@ -18,10 +18,16 @@ public class Day21 implements InputHandler {
 		long score;
 		String name;
 		
+		long winningUniverses = 0;
+		
 		boolean won = false;
 				
 		public Player(String name) {
 			this.name = name;
+		}
+		
+		public String toString() {
+			return name+" ("+pos+","+score+")";
 		}
 	}
 	
