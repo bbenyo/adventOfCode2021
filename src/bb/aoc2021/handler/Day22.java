@@ -101,10 +101,32 @@ public class Day22 implements InputHandler {
 	 *      cube, then we already considered it and can skip it to avoid double counting
 	 */
 	public long countOnCubes(Cube c, int index) {
-		if (c.noOverlap(validArea)) {
+		if (validArea != null && c.noOverlap(validArea)) {
 			return 0;
 		}
 		long onCubes = 0;
+		
+		List<Cube> relevantBeforeCubes = new ArrayList<Cube>();
+		for (int l = 0; l<index; ++l) {
+			Cube pCube = cubes.get(l);
+			if (pCube.on && !pCube.noOverlap(c)) {
+				relevantBeforeCubes.add(pCube);
+			}
+		}
+		
+		List<Cube> relevantAfterCubes = new ArrayList<Cube>();
+		for (int l = index+1; l<cubes.size(); ++l) {
+			Cube pCube = cubes.get(l);
+			if (!pCube.noOverlap(c)) {
+				relevantAfterCubes.add(pCube);
+			}
+		}
+
+		if (relevantBeforeCubes.isEmpty() && relevantAfterCubes.isEmpty()) {
+			onCubes += (c.maxX - c.minX) * (c.maxY - c.minY) * (c.maxZ - c.minZ);
+			return onCubes;
+		}
+				
 		for (int i=c.minX; i<=c.maxX; ++i) {
 			for (int j=c.minY; j<=c.maxY; ++j) {
 				for (int k=c.minZ; k<=c.maxZ; ++k) {
@@ -115,8 +137,7 @@ public class Day22 implements InputHandler {
 					// Look backwards for each v, did we already figure out whether it's on or off?
 					// If it was inside any previous On cube then yes
 					boolean skip = false;
-					for (int l = 0; l<index; ++l) {
-						Cube pCube = cubes.get(l);
+					for (Cube pCube : relevantBeforeCubes) {
 						if (pCube.on && pCube.inside(voxel)) {
 							skip = true;
 							break;
@@ -128,8 +149,7 @@ public class Day22 implements InputHandler {
 					
 					// If not, simulate this voxel going forward, do we turn it off (then back on, then off, etc?)
 					boolean voxelOn = true;
-					for (int l=index; l<cubes.size(); ++l) {
-						Cube nCube = cubes.get(l);
+					for (Cube nCube : relevantAfterCubes) {
 						if (voxelOn != nCube.on && nCube.inside(voxel)) {
 							voxelOn = !voxelOn;							
 						}
