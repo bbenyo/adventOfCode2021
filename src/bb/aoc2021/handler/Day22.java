@@ -55,16 +55,73 @@ public class Day22 implements InputHandler {
 		}
 		
 		public boolean noOverlap(Cube c2) {
-			if (maxX < c2.minX || minX > c2.maxX) {
-				return true;
+			return noOverlapX(c2) || noOverlapY(c2) || noOverlapZ(c2);
+		}
+		
+		public boolean noOverlapX(Cube c2) {
+			return (maxX < c2.minX || minX > c2.maxX);
+		}
+	
+		public boolean noOverlapY(Cube c2) {
+			return (maxY < c2.minY || minY > c2.maxY);
+		}
+		
+		public boolean noOverlapZ(Cube c2) {
+			return (maxZ < c2.minZ || minZ > c2.maxZ);
+		}
+		
+		// Given cube c2, return a cube that represents the region c and c2 overlap
+		public Cube getIntersectingCube(Cube c2) {
+			int oMinX = Math.max(minX, c2.minX);
+			int oMaxX = Math.min(maxX, c2.maxX);
+			int oMinY = Math.max(minY, c2.minY);
+			int oMaxY = Math.min(maxY, c2.maxY);
+			int oMinZ = Math.max(minZ, c2.minZ);
+			int oMaxZ = Math.min(maxZ, c2.maxZ);
+			return new Cube(oMinX, oMaxX, oMinY, oMaxY, oMinZ, oMaxZ, c2.on, "O_"+name+"_"+c2.name);
+		}
+		
+		// new cube overlaps an existing cube
+		// Cut the existing cube so it doesn't overlap
+		public List<Cube> cutOverlapping(Cube otherCube) {
+			Cube c = getIntersectingCube(otherCube);
+			List<Cube> overlap = new ArrayList<Cube>();
+			// Cut this cube into cubes that don't overlap with other cube
+			// Above
+			if (maxX > c.maxX) {
+				Cube above = new Cube(c.maxX+1, maxX, minY, maxY, minZ, maxZ, on, "A_"+name);
+				overlap.add(above);
 			}
-			if (maxY < c2.minY || minY > c2.maxY) {
-				return true;
+			// Below
+			if (minX < c.minX) {
+				Cube below = new Cube(minX, c.minX-1, minY, maxY, minZ, maxZ, on, "B_"+name);
+				overlap.add(below);
 			}
-			if (maxZ < c2.minZ || minZ > c2.maxZ) {
-				return true;
+			// min Y
+			if (minY < c.minY) {
+				Cube left = new Cube(c.minX, c.maxX, minY, c.minY-1, minZ, maxZ, on, "L_"+name);
+				overlap.add(left);
 			}
-			return false;
+			// max Y
+			if (maxY > c.maxY) {
+				Cube right = new Cube(c.minX, c.maxX, c.maxY+1, maxY, minZ, maxZ, on, "R_"+name);
+				overlap.add(right);
+			}
+			// min Z
+			if (minZ < c.minZ) {
+				Cube ztop = new Cube(c.minX, c.maxX, c.minY, c.maxY, minZ, c.minZ-1, on, "Z_"+name);
+				overlap.add(ztop);
+			}
+
+			if (maxZ > c.maxZ) {
+				Cube ztop = new Cube(c.minX, c.maxX, c.minY, c.maxY, c.maxZ+1, maxZ, on, "Y_"+name);
+				overlap.add(ztop);
+			}
+			return overlap;
+		}
+		
+		public long volume() {
+			return (long)Math.abs((maxX - minX)+1) * (long)Math.abs((maxY - minY)+1) * (long)Math.abs((maxZ - minZ)+1);
 		}
 	}
 	
@@ -101,6 +158,7 @@ public class Day22 implements InputHandler {
 	 *      cube, then we already considered it and can skip it to avoid double counting
 	 */
 	public long countOnCubes(Cube c, int index) {
+		logger.info("Considering cube: "+c);
 		if (validArea != null && c.noOverlap(validArea)) {
 			return 0;
 		}
@@ -115,18 +173,20 @@ public class Day22 implements InputHandler {
 		}
 		
 		List<Cube> relevantAfterCubes = new ArrayList<Cube>();
+		boolean foundOneOff = false;
 		for (int l = index+1; l<cubes.size(); ++l) {
 			Cube pCube = cubes.get(l);
-			if (!pCube.noOverlap(c)) {
+			if (!pCube.noOverlap(c) && (!pCube.on || foundOneOff)) {
 				relevantAfterCubes.add(pCube);
+				foundOneOff = true;
 			}
 		}
 
 		if (relevantBeforeCubes.isEmpty() && relevantAfterCubes.isEmpty()) {
-			onCubes += (c.maxX - c.minX) * (c.maxY - c.minY) * (c.maxZ - c.minZ);
+			onCubes += c.volume();
 			return onCubes;
 		}
-				
+	
 		for (int i=c.minX; i<=c.maxX; ++i) {
 			for (int j=c.minY; j<=c.maxY; ++j) {
 				for (int k=c.minZ; k<=c.maxZ; ++k) {
