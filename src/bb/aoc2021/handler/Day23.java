@@ -1,8 +1,6 @@
 package bb.aoc2021.handler;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +21,8 @@ public class Day23 implements InputHandler {
 		
 		char[][] board = new char[cols][rows];
 		
-		public GameBoard() {
+		public GameBoard(int rows) {
+			this.rows = rows;
 			for (int i=0; i<cols; ++i) {
 				board[i][0] = '#';
 			}
@@ -33,42 +32,39 @@ public class Day23 implements InputHandler {
 			}
 			board[12][1] = '#';
 			for (int i=0; i<cols; ++i) {
-				for (int j=2; j<5; ++j) {
+				for (int j=2; j<rows; ++j) {
 					board[i][j] = '#';
 				}
 			}
 			// This means the ending positions
 			// Current position of each apod is stored in the apod struct
-			board[3][2] = '.';
-			board[3][3] = '.';
-			board[5][2] = '.';
-			board[5][3] = '.';
-			board[7][2] = '.';
-			board[7][3] = '.';
-			board[9][2] = '.';
-			board[9][3] = '.';
+			for (int i=3; i<=9; i+=2) {
+				for (int r=2; r<rows-1; ++r) {
+					board[i][r] = '.';
+				}
+			}
 		}
 		
 		public boolean isHallway(int x, int y) {
 			return y == 1;
-		}	
+		}
+		
+		// Rules say that you can't move to a point in the hallway directly above a room
+		public boolean validHallwayMove(int cx) {
+			if (cx < 1 || cx > 11) {
+				return false;
+			}
+			if (cx != 3 && cx != 5 && cx != 7 && cx != 9) {
+				return true;
+			}
+			return false;
+		}
 		
 		public boolean isEnd(int x, int y, char type) {
-			if (y < 2 || y > 3) {
+			if (y < 2 || y > (rows-2)) {
 				return false;
 			}
-			switch (type) {
-			case 'A' :
-				return x == 3;
-			case 'B' : 
-				return x == 5;
-			case 'C' : 
-				return x == 7;
-			case 'D' : 
-				return x == 9;
-			default :
-				return false;
-			}
+			return x == getEndCol(type);
 		}
 		
 		public int getEndCol(char type) {
@@ -80,6 +76,18 @@ public class Day23 implements InputHandler {
 			default: 
 				logger.error("Unknown type: "+type);
 				return 3;
+			}
+		}
+		
+		public char getEndType(int col) {
+			switch(col) {
+			case 3: return 'A';
+			case 5: return 'B';
+			case 7: return 'C';
+			case 9: return 'D';
+			default: 
+				logger.error("Unknown col: "+col);
+				return '\0';
 			}
 		}
 		
@@ -150,9 +158,28 @@ public class Day23 implements InputHandler {
 				return path;
 			}
 		}
+		
+		public int getApodCountPerType() {
+			return rows - 3;
+		}
+		
+		// Is this mover currently blocked?
+		//  We're blocked if we're in a room and can't get out because someone is in our way
+		public boolean isBlocked(APod a, GameState state) {
+			if (this.isHallway(a.x,  a.y)) {
+				return false; // Could be blocked in the hallway if people are on our sides.  Ignore that case for now, this is just an opimization
+			}
+			// Is anyone between us and the hallway
+			for (int i=a.y - 1; i>=1; --i) {
+				if (state.occupied(a.x, i)) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 	
-	GameBoard gameBoard = new GameBoard();
+	GameBoard gameBoard;
 	
 	public int getCost(char a) {
 		switch (a) {
@@ -194,13 +221,11 @@ public class Day23 implements InputHandler {
 			if (!gameBoard.isEnd(x, y, type)) {
 				return false;
 			}
-			// also check that both spots (both apods of the same type) are in their end positions
+			// also check that all spots lower than y have pods of the same type
 			// Else we may have to move out
-			if (y == 2) {
-				APod x3 = s.whoIsAt(x, 3);
-				if (x3 != null && x3.type == this.type) {
-					return true;
-				} else {
+			for (int i=(y+1); i<(gameBoard.rows-1); ++i) {
+				APod x3 = s.whoIsAt(x, i);
+				if (x3 == null || x3.type != this.type) {
 					// We're blocking someone in x,3, we'll have to move, we're not done
 					return false;
 				}
@@ -296,11 +321,10 @@ public class Day23 implements InputHandler {
 		}
 		
 		protected void setStateHash() {
-			StringBuffer sb = new StringBuffer();
-			for (APod a : apods) {
-				sb.append(a);
-			}
-			String hash = sb.toString();
+			// TODO: we could and should make a much faster state hash function
+			//   We just want this to produce the same hash if the game board state is the same
+			//  Printing out the gameboard as a string will work, but this could be sped up immensely
+			String hash = toString();
 			stateHash = hash.hashCode();
 		}
 		
@@ -399,6 +423,11 @@ public class Day23 implements InputHandler {
 				}
 			}
 			
+			List<Integer> allRooms = new ArrayList<Integer>();
+			for (int i=3; i<=9; i+=2) {
+				allRooms.add(i);
+			}
+			
 			for (APod a : apods) {
 				// Can't move if we're at the end
 				if (a.isAtEndPos(this)) {
@@ -410,37 +439,39 @@ public class Day23 implements InputHandler {
 				}
 				// Could be more general here, but we'll hardcode the logic for this specific game for now
 				
+				// If we're blocked, just move on
+				if (gameBoard.isBlocked(a, this)) {
+					continue;
+				}
+				
 				// We can always try to move to another room
 				// Try to move to the end first
 				List<Integer> rooms = new ArrayList<Integer>();
-				for (int i=3; i<=9; i+=2) {
-					rooms.add(i);
-				}
-				
+				rooms.addAll(allRooms);
 				int endCol = gameBoard.getEndCol(a.type);
 				rooms.remove(Integer.valueOf(endCol));
 				rooms.add(0, endCol);
+				
 				boolean myEnd = false;
 				for (Integer i : rooms) {
 					if (i == a.x) {
 						// Don't try to move to the room you're in
 						continue;
 					}
-					List<Location> p1 = gameBoard.getPath(a.x, a.y, i, 2, this, false);
-					if (p1 != null && p1.size() > 0) {
-						// Small optimization, if we're a, and 3,3 is open, we'd always want to move there instead
-						APod i3 = whoIsAt(i,3);
-						if (i3 == null && gameBoard.isEnd(i,3,a.type)) {
-							Location l2 = new Location(i,3);
-							p1.add(l2);
-							myEnd = true;
-						} else if (i3 != null && i3.type == a.type) {
-							myEnd = true;
-						}
-						nextStates.add(new Move(p1, a, this));
-						// If we can move to our end room, always do that
-						if (myEnd) {
+					
+					for (int ty=2; ty<(gameBoard.rows - 1); ++ty) {
+						if (this.occupied(i, ty)) {
+							// can't go any farther
 							break;
+						}
+						// If it's our column, go as far as we can
+						if (endCol == i && ty < (gameBoard.rows - 2) && !this.occupied(i, ty+1)) {
+							// we can go farther
+							continue;
+						}
+						List<Location> p1 = gameBoard.getPath(a.x, a.y, i, ty, this, false);
+						if (p1 != null && p1.size() > 0) {
+							nextStates.add(new Move(p1, a, this));
 						}
 					}
 				} 
@@ -451,18 +482,20 @@ public class Day23 implements InputHandler {
 				if (!gameBoard.isHallway(a.x, a.y)) {
 					// Shorter moves first
 					List<Integer> hCols = new ArrayList<Integer>();
-					for (int i=1; i<9; ++i) {
+					for (int i=9; i>-1; --i) {
 						int cx = a.x - i;
-						if (cx >= 1 && cx <= 11) {
-							if (cx != 3 && cx != 5 && cx != 7 && cx != 9) {
-								hCols.add(cx);
-							}
+						if (cx < 1) {
+							continue;
 						}
-						cx = a.x + 1;
-						if (cx >= 1 && cx <= 11) {
-							if (cx != 3 && cx != 5 && cx != 7 && cx != 9) {
-								hCols.add(cx);
-							}
+						if (!hCols.contains(cx) && gameBoard.validHallwayMove(cx)) {
+							hCols.add(cx);
+						}
+						cx = a.x + i;
+						if (cx > 11) {
+							continue;
+						}
+						if (!hCols.contains(cx) && gameBoard.validHallwayMove(cx)) {
+							hCols.add(cx);
 						}
 					}
 					
@@ -517,11 +550,14 @@ public class Day23 implements InputHandler {
 				return blockers;
 			}
 			int x = gameBoard.getEndCol(a.type);
-			int y = 3;
+			int y = gameBoard.rows - 1;
 			APod x3 = whoIsAt(x, y);
-			if (x3 != null && x3.type == a.type) {
-				// The other pod of my type is in the 3 pos, 2 pos is good for us
-				y = 2;				
+			// Look for where we want this APod to end up. 
+			//   Get the destination column, and find the destination row by finding the lowest
+			//   spot not occupied by an APod of this type.
+			while (y > 1 && (x3 != null && x3.type == a.type)) {
+				y--;
+				x3 = whoIsAt(x,y);
 			}
 			
 			List<Location> path = gameBoard.getPath(a.x, a.y, x, y, this, true);
@@ -543,30 +579,36 @@ public class Day23 implements InputHandler {
 		// Assume everyone can move straight towards their goal spot, add all that energy to the cur score
 		public long getMinScore() {
 			long minScore = score;
-			Map<Character, Boolean> inRow3 = new HashMap<>();
-			APod a3 = whoIsAt(3,3);
-			APod b3 = whoIsAt(5,3);
-			APod c3 = whoIsAt(7,3);
-			APod d3 = whoIsAt(9,3);
-			inRow3.put('A', a3 != null && a3.type == 'A' ? true : false);
-			inRow3.put('B', b3 != null && b3.type == 'B' ? true : false);
-			inRow3.put('C', c3 != null && c3.type == 'C' ? true : false);
-			inRow3.put('D', d3 != null && d3.type == 'D' ? true : false);
+			
+			// Number of APods of this type that are in their destination column
+			Map<Character, Integer> inDest = new HashMap<>();
+			for (int i=3; i<=9; i=i+2) {
+				char endType = gameBoard.getEndType(i);
+				int count = 0;
+				for (int j=gameBoard.rows - 2; j>1; j--) {
+					APod a = whoIsAt(i,j);
+					if (a == null || a.type != endType) {
+						// Empty space here or an APod of the wrong type
+						break;
+					}
+					count++;
+				}
+				inDest.put(endType, count);
+			}
+			
+			// For each apod, assume we could move straight to the destination
 			for (APod a : apods) {
 				if (a.isAtEndPos(this)) {
 					continue;
 				}
 				int x = gameBoard.getEndCol(a.type);
-				int y = 3;
-				if (inRow3.get(a.type)) {
-					y = 2;
-				} else {
-					inRow3.put(a.type, true);
-				}
+				int typeCountInDest = inDest.get(a.type);
+				int y = 1 + gameBoard.getApodCountPerType() - typeCountInDest;
 				// Our end pos is x,y, moving straight there would add
 				List<Location> path = gameBoard.getPath(a.x, a.y, x, y, this, true);
 				if (path != null) {
 					minScore += (path.size() * a.energyCost);
+					inDest.put(a.type, typeCountInDest + 1);
 				}
 			}
 			return minScore;
@@ -576,8 +618,15 @@ public class Day23 implements InputHandler {
 	int curRow = 0;
 	List<APod> initPods = new ArrayList<APod>();
 	
+	protected void initGameboard() {
+		gameBoard = new GameBoard(5);
+	}
+	
 	@Override
 	public void handleInput(String line) {
+		if (gameBoard == null) {
+			initGameboard();
+		}
 		// Could read in the entire gameboard here and construct it dynamically
 		// But the problem would need to define what is a "hallway", etc. 
 		// So instead, we'll just look for the starting locations of the apods
@@ -618,9 +667,13 @@ public class Day23 implements InputHandler {
 				continue;
 			}
 			
-			long lScore = state.score;
 			List<Move> moves = state.generatePossibleMoves();
-			for (Move m : moves) {
+			
+			for (int m1 = 0; m1 < moves.size(); ++m1) {
+				// Iterate from the end of the list
+				//   The possible moves are ordered heuristically, we want to 
+				//   investigate the first one first, so it needs to be last on the stack
+				Move m = moves.get(moves.size() - 1 - m1);
 				GameState nState = m.state;
 				if (winner != null && winner.score < nState.getMinScore()) {
 					// Current winner is already better that a win from this state could be
@@ -632,11 +685,8 @@ public class Day23 implements InputHandler {
 				}
 				workList.add(nState);
 				alreadySearched.put(nState.stateHash, nState.score);
-				if (nState.score < lScore) {
-					lScore = nState.score;
-				}
 			}
-			logger.info("Search step: "+index+" worklist size: "+workList.size()+" lowest score: "+lScore+" found win: "+(winner != null));
+			logger.info("Search step: "+index+" worklist size: "+workList.size()+" found win: "+(winner != null));
 			if (winner != null) {
 				logger.info("\tWinner score: "+winner.score);
 			}
