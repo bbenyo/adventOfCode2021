@@ -19,10 +19,11 @@ public class Day23 implements InputHandler {
 		int rows = 5;
 		int cols = 13;
 		
-		char[][] board = new char[cols][rows];
+		char[][] board;
 		
 		public GameBoard(int rows) {
 			this.rows = rows;
+			board = new char[cols][rows];
 			for (int i=0; i<cols; ++i) {
 				board[i][0] = '#';
 			}
@@ -177,6 +178,20 @@ public class Day23 implements InputHandler {
 			}
 			return false;
 		}
+		
+		// Does this room only contain pods of the correct type?
+		public boolean onlyDestinationPods(int col, GameState state) {
+			char endType = this.getEndType(col);
+			for (int i=2; i<this.rows - 1; ++i) {
+				if (state.occupied(col, i)) {
+					APod occ = state.whoIsAt(col, i);
+					if (occ.type != endType) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
 	}
 	
 	GameBoard gameBoard;
@@ -201,12 +216,16 @@ public class Day23 implements InputHandler {
 		char type;
 		int index = 0;
 		
+		// Where were we last time we moved?
+		int movedFrom;
+		
 		public APod(int x, int y, char t, int index) {
 			this.x = x;
 			this.y = y;
 			this.energyCost = getCost(t);
 			this.type = t;
 			this.index = index;
+			this.movedFrom = y;
 		}
 		
 		public APod(APod o) {
@@ -276,11 +295,13 @@ public class Day23 implements InputHandler {
 	public class Move {
 		GameState state;
 		APod mover;
+		Location destination;
 		
 		public Move(List<Location> path, APod mover, GameState state) {
 			// Mover moves along path
 			state = new GameState(state);
 			state.move(mover, path);
+			destination = path.get(path.size() - 1);
 			this.mover = mover;
 			this.state = state;
 		}		
@@ -353,6 +374,7 @@ public class Day23 implements InputHandler {
 			Location lastLoc = path.get(path.size() - 1);
 			for (APod a : apods) {
 				if (a.equals(mover)) {
+					a.movedFrom = a.x;
 					a.x = lastLoc.getX();
 					a.y = lastLoc.getY();
 					score += (path.size() * a.energyCost);
@@ -394,8 +416,32 @@ public class Day23 implements InputHandler {
 			return false;
 		}
 		
+		public List<Integer> getOrderedHallwayColumns(int col) {
+			List<Integer> hCols = new ArrayList<>();
+			// Get as far out of the way as possible first
+			if (col > 7) {
+				hCols.add(11);
+				hCols.add(10);
+				hCols.add(1);
+				hCols.add(2);
+				hCols.add(4);
+				hCols.add(6);
+				hCols.add(8);
+			} else {
+				hCols.add(1);
+				hCols.add(2);
+				hCols.add(11);
+				hCols.add(10);
+				hCols.add(8);
+				hCols.add(6);
+				hCols.add(4);
+			}
+			return hCols;
+		}
+		
 		public List<Move> generatePossibleMoves() {
 			List<Move> nextStates = new ArrayList<>();
+			List<Move> nextBlockingStates = new ArrayList<>();
 
 			// Let's order the next states to speed up the search
 			// Find the highest energy pod that isn't in its end pos
@@ -411,8 +457,9 @@ public class Day23 implements InputHandler {
 				}
 			}
 			
+			List<APod> blockers = new ArrayList<>();
 			if (highestOutOfPosition != null) {
-				List<APod> blockers = getBlockers(highestOutOfPosition);
+				blockers = getBlockers(highestOutOfPosition);
 				apods.remove(highestOutOfPosition);
 				apods.add(0, highestOutOfPosition);
 				if (blockers != null) {
@@ -429,6 +476,8 @@ public class Day23 implements InputHandler {
 			}
 			
 			for (APod a : apods) {
+				boolean amBlocker = blockers.contains(a);
+				List<Move> aMoves = new ArrayList<>();
 				// Can't move if we're at the end
 				if (a.isAtEndPos(this)) {
 					continue;
@@ -444,73 +493,75 @@ public class Day23 implements InputHandler {
 					continue;
 				}
 				
-				// We can always try to move to another room
+				// We can only move to our destination room
+				//  If it's unblocked
 				// Try to move to the end first
-				List<Integer> rooms = new ArrayList<Integer>();
-				rooms.addAll(allRooms);
 				int endCol = gameBoard.getEndCol(a.type);
-				rooms.remove(Integer.valueOf(endCol));
-				rooms.add(0, endCol);
-				
 				boolean myEnd = false;
-				for (Integer i : rooms) {
-					if (i == a.x) {
-						// Don't try to move to the room you're in
-						continue;
-					}
-					
-					for (int ty=2; ty<(gameBoard.rows - 1); ++ty) {
-						if (this.occupied(i, ty)) {
+				
+				// Is this room empty of other pods?
+				if (endCol != a.x && gameBoard.onlyDestinationPods(endCol, this)) {
+					int ty = 2;
+					while (ty < gameBoard.rows - 1) {
+						if (this.occupied(endCol, ty)) {
 							// can't go any farther
 							break;
 						}
-						// If it's our column, go as far as we can
-						if (endCol == i && ty < (gameBoard.rows - 2) && !this.occupied(i, ty+1)) {
-							// we can go farther
-							continue;
-						}
-						List<Location> p1 = gameBoard.getPath(a.x, a.y, i, ty, this, false);
-						if (p1 != null && p1.size() > 0) {
-							nextStates.add(new Move(p1, a, this));
-						}
+						ty++;
 					}
-				} 
+					ty--;
+					List<Location> p1 = gameBoard.getPath(a.x, a.y, endCol, ty, this, false);
+					if (p1 != null && p1.size() > 0) {
+						Move m1 = new Move(p1, a, this);
+						aMoves.add(m1);
+						myEnd = true;
+					}
+				}
+			
 				if (myEnd) {
+					// No need to move anywhere else, we're done
+					nextStates.addAll(aMoves);
 					continue;
 				}
+				
 				// If we're not in the hallway now, we can move to the hallway
 				if (!gameBoard.isHallway(a.x, a.y)) {
-					// Shorter moves first
-					List<Integer> hCols = new ArrayList<Integer>();
-					for (int i=9; i>-1; --i) {
-						int cx = a.x - i;
-						if (cx < 1) {
-							continue;
-						}
-						if (!hCols.contains(cx) && gameBoard.validHallwayMove(cx)) {
-							hCols.add(cx);
-						}
-						cx = a.x + i;
-						if (cx > 11) {
-							continue;
-						}
-						if (!hCols.contains(cx) && gameBoard.validHallwayMove(cx)) {
-							hCols.add(cx);
-						}
-					}
+					// Get as far out of the way as we can first
+					List<Integer> hCols = getOrderedHallwayColumns(a.x);
 					
 					// We can also try to move to anywhere in the hallway
 					// Since the hallway is small, no need for optimization really, we could do better here
 					for (Integer i : hCols) {
+						if (!gameBoard.validHallwayMove(i)) {
+							continue;
+						}
 						List<Location> p1 = gameBoard.getPath(a.x, a.y, i, 1, this, false);
 						if (p1 != null && p1.size() > 0) {
-							nextStates.add(new Move(p1, a, this));
+							Move m1 = new Move(p1, a, this);
+							if (amBlocker && this.amIBlocking(highestOutOfPosition, m1.destination)) {
+								nextBlockingStates.add(m1);
+							} else {
+								aMoves.add(m1);
+							}
 						}
 					}
-				}				
-			}
-						
+				}
+				
+				Move lastMove = null;
+				for (Move m : aMoves) {
+					// This is a move back to where we were last time, deprioritize it
+					if (m.destination.getX() == a.movedFrom) {
+						lastMove = m;
+					} else {
+						nextStates.add(m);
+					}
+				}
+				if (lastMove != null) {
+					nextStates.add(lastMove);
+				}
+			}						
 			
+			nextStates.addAll(nextBlockingStates);
 			return nextStates;
 		}
 		
@@ -541,16 +592,12 @@ public class Day23 implements InputHandler {
 			return false;
 		}
 		
-		// Get the list of pods that are blocking A from getting to its final spot
-		//  Used for optimization
-		public List<APod> getBlockers(APod a) {
-			List<APod> blockers = new ArrayList<>();
-			// Get a's final spot
+		public Location getFinalSpot(APod a) {
 			if (a.isAtEndPos(this)) {
-				return blockers;
+				return new Location(a.x, a.y);
 			}
 			int x = gameBoard.getEndCol(a.type);
-			int y = gameBoard.rows - 1;
+			int y = gameBoard.rows - 2;
 			APod x3 = whoIsAt(x, y);
 			// Look for where we want this APod to end up. 
 			//   Get the destination column, and find the destination row by finding the lowest
@@ -559,6 +606,38 @@ public class Day23 implements InputHandler {
 				y--;
 				x3 = whoIsAt(x,y);
 			}
+			Location loc = new Location(x, y);
+			return loc;
+		}
+		
+		// Is blocker blocking mover from getting to its final spot? Used for ordering moves
+		public boolean amIBlocking(APod mover, Location blocker) {
+			if (mover.isAtEndPos(this)) {
+				return false;
+			}
+			Location finalSpot = getFinalSpot(mover);
+			List<Location> path = gameBoard.getPath(mover.x, mover.y, finalSpot.getX(), 
+					finalSpot.getY(), this, true);
+			for (Location l : path) {
+				if (l.equals(blocker)) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		// Get the list of pods that are blocking A from getting to its final spot
+		//  Used for optimization
+		public List<APod> getBlockers(APod a) {
+			List<APod> blockers = new ArrayList<>();
+			// Get a's final spot
+			if (a.isAtEndPos(this)) {
+				return blockers;
+			}
+			
+			Location finalSpot = getFinalSpot(a);
+			int x = finalSpot.getX();
+			int y = finalSpot.getY();
 			
 			List<Location> path = gameBoard.getPath(a.x, a.y, x, y, this, true);
 			if (path == null) {
