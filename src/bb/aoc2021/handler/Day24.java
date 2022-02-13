@@ -348,21 +348,24 @@ public class Day24 implements InputHandler {
 	// Create a lookup table, if Z = key, then the maximum number for the remainder 
 	//    of the input digits = value.
 	
-	// The insight here is that the program consists of 14 chunks that are almost the same
-	//  And the only thing that carries over from one chunk to the next is z.
-	//  W is immediately overwritten by the next input
-	//  X and Y are multiplied by 0 before being used, so their values don't carry over.
-	//  Thus the only state that carries from chunk to chunk is z.
-	//  So we start at the end, last input, and try all z values and see if we can get any
-	//   valid input (final z = 0 after the last chunk).
-	//   If we find one, then we put that input value in the table for z
-	//   Then when we're running the program, we don't need to run the last chunk, we just
-	//   lookup the current value of z in our table, and skip to the end.
-	//   We can then iterate, and create the table for the second last, etc.
-	//   Since we try inputs largest to smallest, we just don't overwrite if we already have
-	//   an entry in the table.
+	/**
+	 * The insight here is that the program consists of 14 chunks that are almost the same
+	 * and the only thing that carries over from one chunk to the next is z.
+	 *   W is immediately overwritten by the next input
+	 *   X and Y are multiplied by 0 before being used, so their values don't carry over.
+	 * Thus the only state that carries from chunk to chunk is z.
+	 * So we start at the end, the 14th input, and try all z values and see if we can get any
+	 *   valid input (final z = 0 after the last chunk).
+	 * If we find one, then we put that input value in the table for z
+	 * Then when we're running the program, we don't need to run the last chunk, we just
+	 * lookup the current value of z in our table, and skip to the end.
+	 * 
+	 * We can then iterate, and create the table for the second last, etc.
+	 * Since we try inputs largest to smallest, we just don't overwrite if we already have
+	 *  an entry in the table.
+	 **/
 	
-	// We'll try by only considering this many possible z values
+	// We'll try by only considering this many possible z values, if this doesn't work, we can increase the search area
 	int maxZ = 10000;
 	
 	public Map<Integer, Long> createLookupTable(int i, Map<Integer, Long> fTable) {
@@ -371,18 +374,24 @@ public class Day24 implements InputHandler {
 			for (int w=1; w<=9; ++w) {
 				MONAD m1 = new MONAD();
 				m1.addInput(w);
+				// Run the program from input i to input i+1
 				m1.startAtInput = i;
 				m1.stopAfterInputs = i+1;
+				// To run the program starting at input i, all we need to know for state is what z should b
+				//  Nothing else carries over, and we're looping through all possible z values
 				m1.z = z;
 				m1.execute(program, false);
 				if (fTable == null) {
-					// This is for the digit, we want z to be 0
+					// This is for the last digit, we want z to be 0 for a valid number
 					if (m1.z == 0 && !zInputs.containsKey(z)) {
 						zInputs.put(z, (long)w);
 					}					
 				} else {
 					Long rest = fTable.get(m1.z);
 					if (rest != null) {
+						// We have an entry for this z that we ended up with.
+						//  This means we know that the rest of the digits should be this value in the table
+						//  to get a valid number, and this is the largest "rest of the digits"
 						String r1 = String.valueOf(w)+rest.toString();
 						Long r2 = Long.parseLong(r1);
 						zInputs.put(z, r2);
@@ -390,6 +399,7 @@ public class Day24 implements InputHandler {
 				}
 			}
 		}
+		
 		// This means that after we handle input # i, we look at the value of z
 		//  And can look it up in our table zInputs.
 		//  If there's an entry in the table, that number is the largest value for the 
