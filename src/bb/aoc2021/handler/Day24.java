@@ -1,7 +1,10 @@
 package bb.aoc2021.handler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
@@ -33,7 +36,7 @@ public class Day24 implements InputHandler {
 		@Override
 		public void execute(MONAD m) {
 			if (m.inputs.isEmpty()) {
-				logger.error("Invalid opcode: INP with no inputs!");
+				if (m.verbose) logger.error("Invalid opcode: INP with no inputs!");
 				m.setErrorCondition();
 				return;
 			}
@@ -89,11 +92,11 @@ public class Day24 implements InputHandler {
 			Integer o1 = m.getValue(op1);
 			Integer o2 = m.getValue(op2);
 			if (o2 == 0) {
-				logger.error("DIV BY 0: "+toString());
+				if (m.verbose) logger.error("DIV BY 0: "+toString());
 				m.setErrorCondition();
 				return;
 			}
-			float f1 = o1 / o2;
+			float f1 = (float)o1 / (float)o2;
 			Integer val = (int)Math.floor(f1);
 			m.setRegister(op1, val);
 		}
@@ -111,12 +114,12 @@ public class Day24 implements InputHandler {
 			Integer o1 = m.getValue(op1);
 			Integer o2 = m.getValue(op2);
 			if (o1 < 0) {
-				logger.error("MOD NEG value: "+toString());
+				if (m.verbose) logger.error("MOD NEG value: "+toString());
 				m.setErrorCondition();
 				return;
 			}
 			if (o2 <= 0) {
-				logger.error("MOD NEG0 second: "+toString());
+				if (m.verbose) logger.error("MOD NEG0 second: "+toString());
 				m.setErrorCondition();
 				return;
 			}
@@ -154,7 +157,12 @@ public class Day24 implements InputHandler {
 		List<Integer> inputs;
 		
 		boolean error = false;
-			
+		boolean verbose = false;
+		
+		int inputsProcessed = 0;
+		int startAtInput = 0;
+		int stopAfterInputs = 7;
+		
 		public MONAD() {
 			w = 0;
 			x = 0;
@@ -181,6 +189,13 @@ public class Day24 implements InputHandler {
 		
 		public void addInput(Integer inp) {
 			inputs.add(inp);
+		}
+		
+		public void setInputs(List<Integer> is) {
+			inputs.clear();
+			for (Integer i : is) {
+				inputs.add(i);
+			}
 		}
 		
 		public void setErrorCondition() {
@@ -245,13 +260,23 @@ public class Day24 implements InputHandler {
 		
 		public void execute(List<Instruction> program, boolean verbose) {
 			pc = 0;
+			this.verbose = verbose;
 			for (Instruction i : program) {
-				logger.info("Executing "+i);
+				if (i.opcode == OpCode.INP) {
+					inputsProcessed++;
+				}
+				if (inputsProcessed < startAtInput) {
+					continue;
+				}
 				i.execute(this);
 				if (verbose) {
+					logger.info("Executing "+i);
 					logger.info("\t"+this.toString());
 				}
 				pc++;
+				if (stopAfterInputs > 0 && inputsProcessed >= stopAfterInputs) {
+					return;
+				}
 			}
 		}
 	}
@@ -304,27 +329,88 @@ public class Day24 implements InputHandler {
 			ex.printStackTrace();
 		}
 	}
+	
+	public boolean nextInput(List<Integer> inputs, int endAt) {
+		for (int i=inputs.size() - 1; i >= endAt; --i) {
+			Integer i1 = inputs.get(i);
+			i1--;
+			if (i1 > 0) {
+				inputs.set(i, i1);
+				return false;
+			} else {
+				inputs.set(i, 9);
+			}
+		}
+		return true;
+	}
+	
 
+	// Create a lookup table, if Z = key, then the maximum number for the remainder 
+	//    of the input digits = value.
+	
+	// The insight here is that the program consists of 14 chunks that are almost the same
+	//  And the only thing that carries over from one chunk to the next is z.
+	//  W is immediately overwritten by the next input
+	//  X and Y are multiplied by 0 before being used, so their values don't carry over.
+	//  Thus the only state that carries from chunk to chunk is z.
+	//  So we start at the end, last input, and try all z values and see if we can get any
+	//   valid input (final z = 0 after the last chunk).
+	//   If we find one, then we put that input value in the table for z
+	//   Then when we're running the program, we don't need to run the last chunk, we just
+	//   lookup the current value of z in our table, and skip to the end.
+	//   We can then iterate, and create the table for the second last, etc.
+	//   Since we try inputs largest to smallest, we just don't overwrite if we already have
+	//   an entry in the table.
+	
+	// We'll try by only considering this many possible z values
+	int maxZ = 10000;
+	
+	public Map<Integer, Long> createLookupTable(int i, Map<Integer, Long> fTable) {
+		Map<Integer, Long> zInputs = new HashMap<>();
+		for (int z=0; z<maxZ; ++z) {
+			for (int w=1; w<=9; ++w) {
+				MONAD m1 = new MONAD();
+				m1.addInput(w);
+				m1.startAtInput = i;
+				m1.stopAfterInputs = i+1;
+				m1.z = z;
+				m1.execute(program, false);
+				if (fTable == null) {
+					// This is for the digit, we want z to be 0
+					if (m1.z == 0 && !zInputs.containsKey(z)) {
+						zInputs.put(z, (long)w);
+					}					
+				} else {
+					Long rest = fTable.get(m1.z);
+					if (rest != null) {
+						String r1 = String.valueOf(w)+rest.toString();
+						Long r2 = Long.parseLong(r1);
+						zInputs.put(z, r2);
+					} 
+				}
+			}
+		}
+		// This means that after we handle input # i, we look at the value of z
+		//  And can look it up in our table zInputs.
+		//  If there's an entry in the table, that number is the largest value for the 
+		//  remainder of the inputs to get a valid input (final z = 0)
+		//  If there's no entry, then we can't get a valid number from here.
+		return zInputs;
+	}
+	
 	@Override
 	public void output() {
-		// Execute the program
-		MONAD m1 = new MONAD();
-		m1.addInput(9);
-		m1.addInput(8);
-		m1.addInput(7);
-		m1.addInput(6);
-		m1.addInput(5);
-		m1.addInput(4);
-		m1.addInput(3);
-		m1.addInput(2);
-		m1.addInput(1);
-		m1.addInput(1);
-		m1.addInput(1);
-		m1.addInput(1);
-		m1.addInput(1);
-		m1.addInput(1);
-		m1.execute(program, true);
-		logger.info("FINAL Output: "+m1);
+		Map<Integer, Long> zTable = null;
+		for (int i=14; i>=1; --i) {
+			zTable = createLookupTable(i, zTable);
+			logger.info(zTable);
+		}
+		// Since z starts at 0, if we have a value for 0 in our first table, that's it!
+		if (zTable != null) {
+			logger.info("Max valid value: "+zTable.get(0));
+		}
+		
+		
 	}
 
 }
