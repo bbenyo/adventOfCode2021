@@ -368,10 +368,15 @@ public class Day24 implements InputHandler {
 	// We'll try by only considering this many possible z values, if this doesn't work, we can increase the search area
 	int maxZ = 10000;
 	
+	protected boolean findLargest = true;
+	
 	public Map<Integer, Long> createLookupTable(int i, Map<Integer, Long> fTable) {
 		Map<Integer, Long> zInputs = new HashMap<>();
 		for (int z=0; z<maxZ; ++z) {
-			for (int w=1; w<=9; ++w) {
+			for (int w=9; w >=1; --w) {
+				if (findLargest && zInputs.containsKey(z)) {
+					break;
+				}
 				MONAD m1 = new MONAD();
 				m1.addInput(w);
 				// Run the program from input i to input i+1
